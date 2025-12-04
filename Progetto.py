@@ -24,16 +24,12 @@ def load_data(path):
 def preprocess_data(df):
     print("\n--- 2. PREPROCESSING (Manuale) ---")
     
-    # Separazione Feature e Target
     X = df.drop('Target', axis=1)
     y = df['Target']
     
-    # Encoding del Target usando i Dizionari (Intro Python slide 17)
-    # Sostituiamo le stringhe con numeri manualmente
     target_mapping = {'Dropout': 0, 'Enrolled': 1, 'Graduate': 2}
     print(f"Mappatura classi applicata: {target_mapping}")
     
-    # Usiamo il metodo map che sfrutta la logica dei dizionari
     y_encoded = y.map(target_mapping)
     
     return X, y_encoded, list(target_mapping.keys())
@@ -41,39 +37,29 @@ def preprocess_data(df):
 def train_and_evaluate(X, y, class_names):
     print("\n--- 3. ADDESTRAMENTO E VALUTAZIONE ---")
     
-    # Split Train/Test come visto nelle slide Naive Bayes
-    # test_size=0.2 corrisponde al dividere i dati in 80% training e 20% test
-    # stratify=y mantiene le proporzioni delle classi
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=SEED, stratify=y
     )
     
-    # Modelli trattati nelle lezioni
     models = {
         "Decision Tree": DecisionTreeClassifier(random_state=SEED, max_depth=10),
         "Gaussian NB": GaussianNB(), # GaussianNB gestisce i valori negativi del dataset (es. Inflation rate)
         "Random Forest": RandomForestClassifier(random_state=SEED, n_estimators=100)
     }
     
-    # Dizionario per salvare il modello migliore (Random Forest)
     best_model_obj = None
     
     for name, model in models.items():
         print(f"\n>>> Training {name}...")
         start_time = time.time()
         
-        # Training (metodo .fit visto nelle slide)
         model.fit(X_train, y_train)
         
-        # Salviamo il modello Random Forest per l'analisi successiva
         if name == "Random Forest":
             best_model_obj = model
         
-        # Predizione (metodo .predict visto nelle slide)
         y_pred = model.predict(X_test)
         
-        # Calcolo metriche singole come da slide
-        # Usiamo 'weighted' per gestire le 3 classi (simile alla logica spiegata per F1)
         acc = accuracy_score(y_test, y_pred)
         prec = precision_score(y_test, y_pred, average='weighted')
         rec = recall_score(y_test, y_pred, average='weighted')
@@ -84,12 +70,10 @@ def train_and_evaluate(X, y, class_names):
         print(f"Recall: {rec:.4f}")
         print(f"F1-Score: {f1:.4f}")
         
-        # Matrice di Confusione
         cm = confusion_matrix(y_test, y_pred)
         print("Matrice di Confusione:")
         print(cm)
         
-        # Plot Matrice di Confusione usando solo Matplotlib
         plt.figure()
         plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
         plt.title(f'Confusion Matrix - {name}')
@@ -98,7 +82,6 @@ def train_and_evaluate(X, y, class_names):
         plt.xticks(tick_marks, class_names, rotation=45)
         plt.yticks(tick_marks, class_names)
         
-        # Aggiunta manuale dei numeri nelle celle
         thresh = cm.max() / 2.
         for i in range(cm.shape[0]):
             for j in range(cm.shape[1]):
@@ -117,10 +100,8 @@ def train_and_evaluate(X, y, class_names):
 
 def feature_importance_simple(model, feature_names):
     print("\n--- 4. FEATURE IMPORTANCE ---")
-    # L'importanza delle feature è un attributo dell'albero addestrato
     importances = model.feature_importances_
     
-    # Ordinamento usando argsort (NumPy)
     indices = np.argsort(importances)[::-1]
     
     print("Top 5 Feature:")
@@ -128,7 +109,6 @@ def feature_importance_simple(model, feature_names):
         idx = indices[f]
         print(f"{f+1}. {feature_names[idx]}: {importances[idx]:.4f}")
         
-    # Plot semplice con Matplotlib (pyplot.bar)
     plt.figure(figsize=(10, 6))
     plt.title("Feature Importance (Random Forest)")
     plt.bar(range(5), importances[indices[:5]], align="center")
@@ -137,21 +117,15 @@ def feature_importance_simple(model, feature_names):
     plt.savefig('feature_importance.png')
     print("Grafico salvato: feature_importance.png")
 
-# --- MAIN ---
 if __name__ == "__main__":
-    # Caricamento
     df = load_data(DATASET_PATH)
     
-    # Distribuzione classi (usando groupby e count come da slide Pandas)
     print("\nDistribuzione Classi:")
     print(df.groupby('Target').size())
     
-    # Preprocessing
     X, y, class_names = preprocess_data(df)
     
-    # Training e Valutazione
     best_model, feat_names = train_and_evaluate(X, y, class_names)
     
-    # Feature Importance
     if best_model is not None:
         feature_importance_simple(best_model, feat_names)
